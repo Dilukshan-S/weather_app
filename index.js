@@ -1,6 +1,6 @@
 const api = {
   key: "2fa73590fd8b5a4c6e68098ad5625395",
-  base: "https://api.openweathermap.org/data/2.5/"
+  base: "https://api.openweathermap.org/data/2.5/",
 };
 
 const searchbox = document.querySelector(".search-box");
@@ -21,21 +21,55 @@ function getResults(query) {
 }
 
 function displayResults(weather) {
+  if (!weather || (weather.cod && weather.cod !== 200)) {
+    alert("City not found. Please try again.");
+    return;
+  }
+
   console.log(weather);
-  let city = document.querySelector(".location .city");
+
+  const city = document.querySelector(".location .city");
   city.innerText = `${weather.name}, ${weather.sys.country}`;
 
-  let now = new Date();
-  let date = document.querySelector(".location .date");
-  date.innerText = dateBuilder(now);
+  const now = new Date();
+  const localOffsetMs = now.getTimezoneOffset() * 60000; // your local offset in ms
+  const utcNow = now.getTime() + localOffsetMs; // convert your local time to UTC
+  const cityTime = new Date(utcNow + weather.timezone * 1000); // apply city offset
 
-  let temp = document.querySelector(".current .temp");
+  // display date using your dateBuilder
+  // Display formatted date and time
+  const dateEl = document.querySelector(".location .date");
+  dateEl.innerText = dateBuilder(cityTime);
+
+  let timeEl = document.querySelector(".location .time");
+  if (!timeEl) {
+    timeEl = document.createElement("div");
+    timeEl.classList.add("time");
+    document.querySelector(".location").appendChild(timeEl);
+  }
+
+  function renderCityTime() {
+    const now = new Date();
+    const utcNow = now.getTime() + now.getTimezoneOffset() * 60000;
+    const cityNow = new Date(utcNow + weather.timezone * 1000);
+    timeEl.innerText = cityNow.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+
+  renderCityTime();
+  if (timeEl._clockInterval) clearInterval(timeEl._clockInterval);
+  timeEl._clockInterval = setInterval(renderCityTime, 1000);
+  // ---- Weather Info ----
+  const temp = document.querySelector(".current .temp");
   temp.innerHTML = `${Math.round(weather.main.temp)}<span>°C</span>`;
 
-  let weather_el = document.querySelector(".current .weather");
-  weather_el.innerText = weather.weather[0].main;
+  const weatherEl = document.querySelector(".current .weather");
+  weatherEl.innerText = weather.weather[0].main;
 
-  let hilow = document.querySelector(".hi-low");
+  const hilow = document.querySelector(".hi-low");
   hilow.innerText = `${weather.main.temp_min}°C / ${weather.main.temp_max}°C`;
 }
 
@@ -52,7 +86,7 @@ function dateBuilder(d) {
     "September",
     "October",
     "November",
-    "December"
+    "December",
   ];
   let days = [
     "Sunday",
@@ -61,7 +95,7 @@ function dateBuilder(d) {
     "Wednesday",
     "Thursday",
     "Friday",
-    "Saturday"
+    "Saturday",
   ];
 
   let day = days[d.getDay()];
